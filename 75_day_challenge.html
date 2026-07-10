@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>75 Day Cut Challenge</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0f;--s1:#111118;--s2:#1a1a26;--s3:#222235;
+  --border:#1e1e2e;--border2:#2d2d4a;
+  --text:#f3f4f6;--text2:#9ca3af;--text3:#4b5563;
+  --accent:#22d3ee;--accent-d:#22d3ee18;--accent-b:#22d3ee40;
+  --green:#22c55e;--green-d:#22c55e18;--green-b:#22c55e40;
+  --amber:#f59e0b;--amber-d:#f59e0b18;--amber-b:#f59e0b40;
+  --red:#ef4444;--red-d:#ef444418;--red-b:#ef444440;
+  --purple:#a855f7;--purple-d:#a855f718;--purple-b:#a855f740;
+  --r:12px;--r-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px;overflow-x:hidden}
+.app{max-width:440px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:76px}
+
+/* TOPBAR */
+.topbar{padding:14px 20px 10px;background:var(--bg);position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border)}
+.topbar-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.prog-track{height:4px;background:var(--s2);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .4s ease}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;background:var(--s1);border-top:1px solid var(--border);display:flex;padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:100}
+.nv{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;cursor:pointer;color:var(--text3);border:none;background:none;font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;transition:color .15s}
+.nv.active{color:var(--accent)}
+.nv svg{width:21px;height:21px}
+
+/* PAGES */
+.page{display:none;padding:16px 20px;animation:fi .2s ease}
+.page.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);padding:15px;margin-bottom:11px}
+.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:11px}
+
+/* HABIT ITEMS */
+.hi{display:flex;align-items:center;gap:11px;padding:9px 0;cursor:pointer;border-bottom:1px solid var(--border);user-select:none}
+.hi:last-child{border-bottom:none;padding-bottom:0}
+.hi:first-child{padding-top:0}
+.hbox{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.hbox.on{background:var(--green);border-color:var(--green)}
+.hlbl{font-size:13px;font-weight:500;flex:1;line-height:1.3}
+.hlbl.on{text-decoration:line-through;color:var(--text3);font-weight:400}
+
+/* STATS */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.sc{background:var(--s1);border-radius:var(--r);border:1px solid var(--border);padding:14px}
+.sv{font-size:26px;font-weight:800;line-height:1}
+.sl{font-size:11px;color:var(--text2);margin-top:3px}
+
+/* CALENDAR */
+.cgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.cd{aspect-ratio:1;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border:1px solid var(--border);transition:transform .1s;color:var(--text3);background:var(--s2)}
+.cd:active{transform:scale(.88)}
+.cd.today{border-color:var(--accent);color:var(--accent)}
+.cd.part{background:#f59e0b22;border-color:var(--amber);color:var(--amber)}
+.cd.done{background:#22c55e22;border-color:var(--green);color:var(--green)}
+.cd.fut{background:var(--s1);color:var(--border2)}
+
+/* INPUTS */
+.inp{background:var(--s2);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:16px;font-weight:600;padding:11px 14px;width:100%;outline:none;font-family:inherit}
+.inp:focus{border-color:var(--accent)}
+.ta{min-height:80px;resize:vertical;font-size:13px;line-height:1.5}
+
+/* MOOD */
+.mrow{display:flex;gap:6px}
+.mb{flex:1;padding:9px 0;border-radius:var(--r-sm);border:1.5px solid var(--border2);background:none;cursor:pointer;font-size:18px;transition:all .15s}
+.mb.sel{border-color:var(--accent);background:var(--accent-d)}
+
+/* BUTTONS */
+.btn{padding:12px 20px;border-radius:var(--r-sm);border:none;cursor:pointer;font-size:14px;font-weight:700;transition:opacity .15s;width:100%}
+.btn:active{opacity:.8}
+.btn-a{background:var(--accent);color:#000}
+.btn-s{background:var(--s2);color:var(--text);border:1px solid var(--border2)}
+
+/* BANNER */
+.banner{border-radius:var(--r);padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:11px}
+
+/* RING */
+.ring-wrap{position:relative;width:78px;height:78px;flex-shrink:0}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+
+/* CHART */
+.ch-wrap{position:relative;height:160px}
+.ch-lg{height:200px}
+.ch-sm{height:130px}
+
+/* SETUP */
+.setup{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px}
+.setup h1{font-size:30px;font-weight:800;margin-bottom:6px;text-align:center}
+.setup p{color:var(--text2);font-size:14px;text-align:center;margin-bottom:28px;line-height:1.5}
+.setup-field{margin-bottom:12px;width:100%;max-width:320px}
+.setup-field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:5px}
+.setup-input{background:var(--s1);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:18px;font-weight:700;padding:14px;width:100%;text-align:center;outline:none;font-family:inherit}
+.setup-input:focus{border-color:var(--accent)}
+
+/* TOAST */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:700;z-index:999;display:none;white-space:nowrap}
+.toast.show{display:block;animation:fi .2s ease}
+
+/* SECTION DIVIDER */
+.sdiv{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 6px}
+
+/* PROGRESS RING TRACK */
+.rt{fill:none;stroke:var(--s2);stroke-width:7}
+.rf{fill:none;stroke:var(--accent);stroke-width:7;stroke-linecap:round;transition:stroke-dasharray .5s ease}
+
+/* PILL BADGE */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700}
+
+/* WATER TRACKER */
+.water-grid{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.wg{width:32px;height:32px;border-radius:6px;border:1.5px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.wg.wfull{background:var(--accent-d);border-color:var(--accent)}
+
+/* RESET BUTTON */
+.reset-link{color:var(--text3);font-size:12px;text-align:center;cursor:pointer;text-decoration:underline;display:block;margin-top:8px}
+.reset-link:hover{color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div class="setup" id="setupEl">
+  <div style="font-size:52px;margin-bottom:14px">🔥</div>
+  <h1>75 Day Cut</h1>
+  <p>Let's track every single day.<br>Enter your starting details to begin.</p>
+  <div class="setup-field">
+    <label>Your name</label>
+    <input class="setup-input" id="sName" placeholder="Rohan" type="text">
+  </div>
+  <div class="setup-field">
+    <label>Start date</label>
+    <input class="setup-input" id="sDate" type="date">
+  </div>
+  <div class="setup-field">
+    <label>Starting weight (kg)</label>
+    <input class="setup-input" id="sWeight" placeholder="70.5" type="number" step="0.1" min="40" max="200">
+  </div>
+  <div class="setup-field">
+    <label>Goal weight (kg)</label>
+    <input class="setup-input" id="sGoal" placeholder="63.0" type="number" step="0.1" min="40" max="200">
+  </div>
+  <div style="width:100%;max-width:320px;margin-top:8px">
+    <button class="btn btn-a" onclick="startChallenge()">Start my 75 days 🚀</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="appEl" style="display:none">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-row">
+      <div>
+        <div style="font-size:10px;color:var(--text2);font-weight:700;letter-spacing:.1em;text-transform:uppercase" id="topName">Rohan's Cut</div>
+        <div style="font-size:18px;font-weight:800" id="topDay">Day 1 of 75</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="text-align:right">
+          <div style="font-size:16px;font-weight:800;color:var(--amber)" id="streakEl">🔥 0</div>
+          <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">streak</div>
+        </div>
+      </div>
+    </div>
+    <div class="prog-track">
+      <div class="prog-fill" id="progFill" style="background:linear-gradient(90deg,var(--accent),var(--green));width:0%"></div>
+    </div>
+  </div>
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+
+    <!-- Hero -->
+    <div class="card" style="background:linear-gradient(135deg,#111128,#1a1a2e)">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="ring-wrap">
+          <svg width="78" height="78" viewBox="0 0 36 36">
+            <circle class="rt" cx="18" cy="18" r="14.5"/>
+            <circle class="rf" id="ringFill" cx="18" cy="18" r="14.5" stroke-dasharray="0 91.1"/>
+          </svg>
+          <div class="ring-pct" id="ringPct" style="color:var(--accent)">0%</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;font-weight:600" id="homeDateLbl"></div>
+          <div style="font-size:22px;font-weight:800;margin:2px 0" id="homeHabitCount">0/17</div>
+          <div style="font-size:12px;color:var(--text2)">habits done today</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:22px;font-weight:800;color:var(--accent)" id="homeWeight">--</div>
+          <div style="font-size:10px;color:var(--text2)">current kg</div>
+          <div style="font-size:11px;margin-top:3px;font-weight:600" id="homeWeightDiff"></div>
+        </div>
+      </div>
+      <!-- Day completion bar -->
+      <div style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px"><span>Today's progress</span><span id="homeHabitPct">0%</span></div>
+        <div class="prog-track" style="height:6px"><div class="prog-fill" id="dayProgFill" style="background:var(--green);width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Workout Banner -->
+    <div class="banner" id="homeBanner"></div>
+
+    <!-- Quick Stats -->
+    <div class="sg">
+      <div class="sc"><div class="sv" style="color:var(--accent)" id="hsDayNum">1</div><div class="sl">Day of challenge</div></div>
+      <div class="sc"><div class="sv" style="color:var(--text2)" id="hsDaysLeft">74</div><div class="sl">Days remaining</div></div>
+      <div class="sc"><div class="sv" style="color:var(--green)" id="hsWorkouts">0</div><div class="sl">Workouts done</div></div>
+      <div class="sc"><div class="sv" style="color:var(--amber)" id="hsPerfect">0</div><div class="sl">Perfect days 💯</div></div>
+    </div>
+
+    <!-- Goal progress -->
+    <div class="card" id="goalCard"></div>
+
+    <!-- Weight mini chart -->
+    <div class="card">
+      <div class="ct">Weight trend</div>
+      <div class="ch-wrap"><canvas id="miniChart"></canvas></div>
+    </div>
+
+    <!-- Reset -->
+    <span class="reset-link" onclick="resetApp()">Reset challenge (start over)</span>
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- TODAY PAGE -->
+  <div class="page" id="page-today">
+    <div id="todayBanner" class="banner"></div>
+
+    <div class="card">
+      <div class="ct" style="color:var(--amber)">☀️ Morning</div>
+      <div id="g-morning"></div>
+    </div>
+    <div class="card" id="workoutCard">
+      <div class="ct" style="color:var(--red)">💪 Workout</div>
+      <div id="g-workout"></div>
+    </div>
+    <div class="card">
+      <div class="ct" style="color:var(--green)">🍽️ Nutrition</div>
+      <div id="g-nutrition"></div>
+    </div>
+    <div class="card">
+      <div class="ct" style="color:var(--purple)">💊 Supplements</div>
+      <div id="g-supplements"></div>
+    </div>
+    <div class="card">
+      <div class="ct" style="color:var(--accent)">🌙 Lifestyle</div>
+      <div id="g-lifestyle"></div>
+    </div>
+
+    <!-- Water tracker -->
+    <div class="card">
+      <div class="ct">💧 Water intake</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Tap glasses to track — target: 7 glasses (3.5L)</div>
+      <div class="water-grid" id="waterGrid"></div>
+    </div>
+
+    <!-- Weight -->
+    <div class="card">
+      <div class="ct">⚖️ Today's weight</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="number" id="wtInput" class="inp" placeholder="70.0" step="0.1" min="40" max="200" style="flex:1;text-align:center;font-size:20px">
+        <span style="color:var(--text2);font-weight:700;font-size:15px">kg</span>
+        <button onclick="saveWeight()" class="btn btn-a" style="width:auto;padding:11px 18px">Save</button>
+      </div>
+    </div>
+
+    <!-- Mood -->
+    <div class="card">
+      <div class="ct">😊 Energy today</div>
+      <div class="mrow" id="moodRow">
+        <button class="mb" onclick="setMood(1)">😴</button>
+        <button class="mb" onclick="setMood(2)">😐</button>
+        <button class="mb" onclick="setMood(3)">🙂</button>
+        <button class="mb" onclick="setMood(4)">😄</button>
+        <button class="mb" onclick="setMood(5)">🔥</button>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+      <div class="ct">📝 Notes / Gym log</div>
+      <textarea id="notesTA" class="inp ta" placeholder="e.g. Benched 65kg today. Energy was solid. Tiffin had extra roti — kept it to 1.5..."></textarea>
+      <button onclick="saveNotes()" class="btn btn-s" style="margin-top:10px">Save notes</button>
+    </div>
+  </div>
+
+  <!-- CALENDAR PAGE -->
+  <div class="page" id="page-calendar">
+    <div style="font-size:22px;font-weight:800;margin-bottom:3px">75-Day Map</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Tap any day to view or log it</div>
+    <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:2px;background:var(--s2);border:1px solid var(--border)"></div>Empty</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--amber)"><div style="width:10px;height:10px;border-radius:2px;background:#f59e0b30"></div>Partial</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green)"><div style="width:10px;height:10px;border-radius:2px;background:#22c55e30"></div>Complete</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--accent)"><div style="width:10px;height:10px;border-radius:2px;border:1px solid var(--accent)"></div>Today</div>
+    </div>
+    <div class="cgrid" id="calGrid"></div>
+    <div style="margin-top:20px">
+      <div class="ct">Challenge phases</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:6px;border-radius:3px;background:var(--accent)"></div><span style="font-size:12px;color:var(--text2)">Days 1–25 · Adaptation + building habits</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:6px;border-radius:3px;background:var(--green)"></div><span style="font-size:12px;color:var(--text2)">Days 26–50 · Visible changes, push harder</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:6px;border-radius:3px;background:var(--amber)"></div><span style="font-size:12px;color:var(--text2)">Days 51–75 · Definition + peak cut</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS PAGE -->
+  <div class="page" id="page-stats">
+    <div style="font-size:22px;font-weight:800;margin-bottom:3px">Your progress</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Full 75-day overview</div>
+    <div class="sg" id="statsGrid"></div>
+    <div class="card">
+      <div class="ct">Weight over 75 days</div>
+      <div class="ch-wrap ch-lg"><canvas id="fullChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Daily completion rate</div>
+      <div class="ch-wrap ch-sm"><canvas id="compChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Workout breakdown</div>
+      <div id="wkBreakdown"></div>
+    </div>
+    <div class="card">
+      <div class="ct">Mood trend</div>
+      <div class="ch-wrap ch-sm"><canvas id="moodChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bnav">
+    <button class="nv active" id="nav-home" onclick="go('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      Home
+    </button>
+    <button class="nv" id="nav-today" onclick="go('today')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="14" r="1" fill="currentColor"/><circle cx="12" cy="14" r="1" fill="currentColor"/><circle cx="8" cy="18" r="1" fill="currentColor"/></svg>
+      Today
+    </button>
+    <button class="nv" id="nav-calendar" onclick="go('calendar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9M15 21V9"/></svg>
+      75 Days
+    </button>
+    <button class="nv" id="nav-stats" onclick="go('stats')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+      Stats
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────
+// HABITS CONFIG
+// ─────────────────────────────────────────
+const HABITS = {
+  morning:[
+    {id:'wake',   label:'Wake up by 6:15 AM'},
+    {id:'water_m',label:'500ml water immediately on waking'},
+    {id:'pre',    label:'Pre-workout snack — 2 eggs + banana'},
+  ],
+  workout:[
+    {id:'gym',    label:'Workout completed — 7:30 to 8:30 AM', skip:true},
+    {id:'wlog',   label:'Logged all weights at gym', skip:true},
+  ],
+  nutrition:[
+    {id:'shake',  label:'Post-workout shake done', skip:true},
+    {id:'desk',   label:'Oats + 3 eggs at desk (10:30 AM)'},
+    {id:'tiffin', label:'Tiffin — controlled portions (1 PM)'},
+    {id:'snack',  label:'Afternoon chicken snack (4:30 PM)'},
+    {id:'dinner', label:'Dinner done by 8 PM'},
+  ],
+  supplements:[
+    {id:'creat',  label:'Creatine 5g'},
+    {id:'vitd',   label:'Vitamin D3 2000 IU'},
+    {id:'omega',  label:'Omega-3 fish oil'},
+    {id:'mag',    label:'Magnesium glycinate (before bed)'},
+    {id:'multi',  label:'Multivitamin'},
+  ],
+  lifestyle:[
+    {id:'water',  label:'Hit 3.5L water today'},
+    {id:'sleep',  label:'In bed by 10:30 PM'},
+  ],
+};
+
+const REST_EXTRA = [
+  {id:'walk',   label:'20-30 min easy walk'},
+  {id:'cook',   label:'Batch cook chicken for the week (Sunday)'},
+  {id:'prep',   label:'Prep eggs + oats for Monday'},
+];
+
+const WT = [
+  {n:'Push day',    s:'Chest · shoulders · triceps',   c:'#22d3ee', bg:'#22d3ee12', i:'↑'},
+  {n:'Pull day',    s:'Back width · biceps',            c:'#22c55e', bg:'#22c55e12', i:'↓'},
+  {n:'Legs + core', s:'Quads · hamstrings · abs',       c:'#a855f7', bg:'#a855f712', i:'⚡'},
+  {n:'Push day',    s:'Shoulders · chest · triceps',    c:'#22d3ee', bg:'#22d3ee12', i:'↑'},
+  {n:'Pull day',    s:'Back thickness · arms volume',   c:'#22c55e', bg:'#22c55e12', i:'↓'},
+  {n:'Legs + HIIT', s:'Legs then HIIT cardio finisher', c:'#ef4444', bg:'#ef444412', i:'🔥'},
+  {n:'Rest day',    s:'Walk · food prep · recover',     c:'#9ca3af', bg:'#9ca3af0e', i:'😴'},
+];
+
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+let D = { name:'', startDate:'', startWeight:0, goalWeight:0, days:{} };
+let viewDate = '';
+let charts = {};
+
+// ─────────────────────────────────────────
+// STORAGE
+// ─────────────────────────────────────────
+const KEY = '75dc_v2';
+function save(){ localStorage.setItem(KEY, JSON.stringify(D)); }
+function load(){ const s=localStorage.getItem(KEY); if(s){D=JSON.parse(s);return true;} return false; }
+
+// ─────────────────────────────────────────
+// DATES
+// ─────────────────────────────────────────
+function today(){ return new Date().toISOString().split('T')[0]; }
+function addDays(s,n){ const d=new Date(s+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; }
+function dayNum(s){ if(!D.startDate)return 1; const a=new Date(D.startDate+'T12:00:00'),b=new Date(s+'T12:00:00'); return Math.floor((b-a)/864e5)+1; }
+function dateForDay(n){ return addDays(D.startDate, n-1); }
+function dow(s){ return new Date(s+'T12:00:00').getDay(); } // 0=Sun
+function isRest(s){ return dow(s)===0; }
+function wtFor(s){ const map={1:0,2:1,3:2,4:3,5:4,6:5,0:6}; return WT[map[dow(s)]]; }
+function fmtDate(s){ return new Date(s+'T12:00:00').toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}); }
+
+// ─────────────────────────────────────────
+// DATA HELPERS
+// ─────────────────────────────────────────
+function dd(s){ if(!D.days[s])D.days[s]={h:{},w:null,mood:null,notes:'',water:0}; return D.days[s]; }
+
+function habitsFor(s){
+  const rest=isRest(s), all=[];
+  Object.entries(HABITS).forEach(([g,hs])=>{
+    hs.forEach(h=>{ if(rest && h.skip)return; all.push({...h,g}); });
+  });
+  if(rest) REST_EXTRA.forEach(h=>all.push({...h,g:'morning'}));
+  return all;
+}
+
+function completion(s){
+  const hs=habitsFor(s), data=dd(s);
+  const done=hs.filter(h=>data.h[h.id]).length;
+  return {done, total:hs.length, pct:hs.length?Math.round(done/hs.length*100):0};
+}
+
+function latestWeight(){
+  const entries=Object.entries(D.days).filter(([,d])=>d.w!=null).sort(([a],[b])=>b>a?1:-1);
+  return entries.length?entries[0][1].w:null;
+}
+
+function streak(){
+  let s=0,d=new Date();
+  for(let i=0;i<75;i++){
+    const ds=d.toISOString().split('T')[0];
+    const {pct}=completion(ds);
+    if(pct>=80){s++;d.setDate(d.getDate()-1);}else break;
+  }
+  return s;
+}
+
+// ─────────────────────────────────────────
+// SETUP
+// ─────────────────────────────────────────
+function startChallenge(){
+  const name=document.getElementById('sName').value.trim()||'Rohan';
+  const date=document.getElementById('sDate').value||today();
+  const sw=parseFloat(document.getElementById('sWeight').value);
+  const gw=parseFloat(document.getElementById('sGoal').value);
+  if(!sw||sw<40){toast('Enter your starting weight','#ef4444');return;}
+  if(!gw||gw<40){toast('Enter your goal weight','#ef4444');return;}
+  D={name,startDate:date,startWeight:sw,goalWeight:gw,days:{}};
+  dd(date).w=sw;
+  save();
+  boot();
+}
+
+function resetApp(){
+  if(!confirm('Reset the challenge? All data will be lost.'))return;
+  localStorage.removeItem(KEY);
+  location.reload();
+}
+
+// ─────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────
+function toast(msg,bg='#22c55e'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.background=bg;el.style.color=bg==='#22c55e'?'#000':'#fff';
+  el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+// ─────────────────────────────────────────
+// TOPBAR
+// ─────────────────────────────────────────
+function updateTop(){
+  const dn=Math.max(1,Math.min(75,dayNum(today())));
+  document.getElementById('topName').textContent=`${D.name}'s Cut`;
+  document.getElementById('topDay').textContent=`Day ${dn} of 75`;
+  document.getElementById('progFill').style.width=`${(dn/75)*100}%`;
+  document.getElementById('streakEl').textContent=`🔥 ${streak()}`;
+}
+
+// ─────────────────────────────────────────
+// HOME
+// ─────────────────────────────────────────
+function renderHome(){
+  const t=today(),dn=Math.max(1,Math.min(75,dayNum(t)));
+  const {done,total,pct}=completion(t);
+  const wt=wtFor(t),lw=latestWeight();
+  const circ=2*Math.PI*14.5;
+  document.getElementById('ringFill').setAttribute('stroke-dasharray',`${(pct/100)*circ} ${circ}`);
+  document.getElementById('ringPct').textContent=pct+'%';
+  document.getElementById('homeDateLbl').textContent=fmtDate(t);
+  document.getElementById('homeHabitCount').textContent=`${done}/${total}`;
+  document.getElementById('homeHabitPct').textContent=pct+'%';
+  document.getElementById('dayProgFill').style.width=pct+'%';
+  document.getElementById('homeWeight').textContent=lw?`${lw}`:'--.--';
+  const diff=lw&&D.startWeight?(lw-D.startWeight).toFixed(1):null;
+  const de=document.getElementById('homeWeightDiff');
+  if(diff!==null){de.textContent=`${diff>0?'+':''}${diff}kg from start`;de.style.color=diff<=0?'#22c55e':'#ef4444';}
+  else de.textContent='';
+  document.getElementById('hsDayNum').textContent=dn;
+  document.getElementById('hsDaysLeft').textContent=Math.max(0,75-dn);
+
+  // Workout banner
+  const hb=document.getElementById('homeBanner');
+  hb.style.cssText=`background:${wt.bg};border:1px solid ${wt.c}35;border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:11px`;
+  hb.innerHTML=`<div style="width:38px;height:38px;border-radius:9px;background:${wt.c}20;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${wt.i}</div><div><div style="font-weight:700;color:${wt.c};font-size:14px">${wt.n}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${wt.s}</div></div>`;
+
+  // Workouts & perfect days
+  let wks=0,perf=0;
+  Object.entries(D.days).forEach(([s,d])=>{ const n=dayNum(s); if(n<1||n>75||s>t)return; if(d.h&&d.h.gym)wks++; if(completion(s).pct===100)perf++; });
+  document.getElementById('hsWorkouts').textContent=wks;
+  document.getElementById('hsPerfect').textContent=perf;
+
+  // Goal card
+  const goalPct=D.startWeight&&D.goalWeight?Math.min(100,Math.max(0,Math.round(((D.startWeight-(lw||D.startWeight))/(D.startWeight-D.goalWeight))*100))):0;
+  const gc=document.getElementById('goalCard');
+  gc.innerHTML=`<div class="ct" style="color:var(--green)">🎯 Goal progress</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+      <div><div style="font-size:20px;font-weight:800;color:var(--green)">${goalPct}%</div><div style="font-size:11px;color:var(--text2)">towards ${D.goalWeight}kg goal</div></div>
+      <div style="text-align:right"><div style="font-size:13px;font-weight:700">${D.startWeight}kg → ${D.goalWeight}kg</div><div style="font-size:11px;color:var(--text2)">start → goal</div></div>
+    </div>
+    <div class="prog-track" style="height:8px;border-radius:4px"><div class="prog-fill" style="background:var(--green);width:${goalPct}%;height:8px;border-radius:4px"></div></div>
+    <div style="font-size:11px;color:var(--text2);margin-top:6px">Lose ~0.5kg/week = on track for ${(D.startWeight-((75/7)*0.5)).toFixed(1)}kg by Day 75</div>`;
+
+  renderMiniChart();
+}
+
+function renderMiniChart(){
+  const ws=[],ls=[];
+  for(let i=1;i<=75;i++){const s=dateForDay(i),d=D.days[s];if(d&&d.w){ws.push({x:i,y:d.w});ls.push(`D${i}`);}}
+  const ctx=document.getElementById('miniChart').getContext('2d');
+  if(charts.mini)charts.mini.destroy();
+  if(ws.length<2){ctx.fillStyle='#4b5563';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('Log weight daily to see trend',ctx.canvas.width/2,60);return;}
+  charts.mini=new Chart(ctx,{type:'line',data:{datasets:[{data:ws,borderColor:'#22d3ee',backgroundColor:'#22d3ee12',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#22d3ee',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',display:false},y:{grid:{color:'#1e1e2e'},ticks:{color:'#4b5563',font:{size:10},callback:v=>`${v}kg`}}}}});
+}
+
+// ─────────────────────────────────────────
+// TODAY
+// ─────────────────────────────────────────
+function renderToday(s){
+  viewDate=s;
+  const wt=wtFor(s),rest=isRest(s),data=dd(s);
+  const dn=dayNum(s),t=today(),isFut=s>t;
+
+  // Banner
+  const tb=document.getElementById('todayBanner');
+  tb.style.cssText=`background:${wt.bg};border:1px solid ${wt.c}35;border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:11px`;
+  tb.innerHTML=`<div style="width:38px;height:38px;border-radius:9px;background:${wt.c}20;display:flex;align-items:center;justify-content:center;font-size:18px">${wt.i}</div><div style="flex:1"><div style="font-weight:700;color:${wt.c}">${wt.n}</div><div style="font-size:12px;color:var(--text2)">${wt.s}</div></div><div style="text-align:right"><div style="font-size:11px;font-weight:700;color:${wt.c}">Day ${dn}</div><div style="font-size:10px;color:var(--text2)">${new Date(s+'T12:00:00').toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})}</div></div>`;
+
+  document.getElementById('workoutCard').style.display=rest?'none':'block';
+
+  // Render habit groups
+  ['morning','workout','nutrition','supplements','lifestyle'].forEach(g=>{
+    const grp=HABITS[g]||[];
+    const extra=g==='morning'&&rest?REST_EXTRA:[];
+    const all=[...grp,...extra].filter(h=>!(rest&&h.skip));
+    const el=document.getElementById(`g-${g}`);
+    el.innerHTML='';
+    all.forEach(h=>{
+      const on=!!data.h[h.id];
+      const div=document.createElement('div');
+      div.className='hi';
+      div.innerHTML=`<div class="hbox${on?' on':''}">${on?'<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polyline points="2.5,6.5 5.5,9.5 10.5,3" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div><span class="hlbl${on?' on':''}">${h.label}</span>`;
+      if(!isFut) div.onclick=()=>toggleH(h.id,s,g,extra.some(e=>e.id===h.id));
+      el.appendChild(div);
+    });
+  });
+
+  // Water
+  renderWater(s);
+
+  // Weight
+  if(data.w) document.getElementById('wtInput').value=data.w;
+  else document.getElementById('wtInput').value='';
+
+  // Mood
+  document.querySelectorAll('.mb').forEach((b,i)=>b.classList.toggle('sel',i+1===data.mood));
+
+  // Notes
+  document.getElementById('notesTA').value=data.notes||'';
+}
+
+function toggleH(id,s,g,isExtra){
+  const data=dd(s);
+  data.h[id]=!data.h[id];
+  save();
+  const grp=HABITS[g]||[];
+  const extra=g==='morning'&&isRest(s)?REST_EXTRA:[];
+  const all=[...grp,...extra].filter(h=>!(isRest(s)&&h.skip));
+  const el=document.getElementById(`g-${g}`);
+  el.innerHTML='';
+  all.forEach(h=>{
+    const on=!!data.h[h.id];
+    const div=document.createElement('div');
+    div.className='hi';
+    div.innerHTML=`<div class="hbox${on?' on':''}">${on?'<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polyline points="2.5,6.5 5.5,9.5 10.5,3" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div><span class="hlbl${on?' on':''}">${h.label}</span>`;
+    div.onclick=()=>toggleH(h.id,s,g,extra.some(e=>e.id===h.id));
+    el.appendChild(div);
+  });
+  updateTop();renderHome();renderCalGrid();
+}
+
+function renderWater(s){
+  const data=dd(s),wg=document.getElementById('waterGrid');
+  wg.innerHTML='';
+  for(let i=1;i<=7;i++){
+    const full=(data.water||0)>=i;
+    const div=document.createElement('div');
+    div.className=`wg${full?' wfull':''}`;
+    div.textContent='💧';
+    div.onclick=()=>{data.water=(data.water||0)===i?i-1:i;save();renderWater(s);};
+    wg.appendChild(div);
+  }
+  const lbl=document.createElement('div');
+  lbl.style.cssText='font-size:12px;color:var(--text2);align-self:center;margin-left:4px';
+  lbl.textContent=`${(data.water||0) * 0.5}L / 3.5L`;
+  wg.appendChild(lbl);
+}
+
+function saveWeight(){
+  const v=parseFloat(document.getElementById('wtInput').value);
+  if(!v||v<40){toast('Enter a valid weight','#ef4444');return;}
+  dd(viewDate).w=v;save();
+  toast('Weight saved ✓');
+  renderHome();
+}
+
+function setMood(v){
+  dd(viewDate).mood=v;save();
+  document.querySelectorAll('.mb').forEach((b,i)=>b.classList.toggle('sel',i+1===v));
+}
+
+function saveNotes(){
+  dd(viewDate).notes=document.getElementById('notesTA').value;
+  save();toast('Notes saved ✓');
+}
+
+// ─────────────────────────────────────────
+// CALENDAR
+// ─────────────────────────────────────────
+function renderCalGrid(){
+  const g=document.getElementById('calGrid'),t=today();
+  g.innerHTML='';
+  for(let i=1;i<=75;i++){
+    const s=dateForDay(i),{pct}=completion(s);
+    const isT=s===t,isFut=s>t;
+    const div=document.createElement('div');
+    let cls='cd';
+    if(isT)cls+=' today';
+    else if(isFut)cls+=' fut';
+    else if(pct===0)cls+='';
+    else if(pct<80)cls+=' part';
+    else cls+=' done';
+    div.className=cls;
+    div.textContent=i;
+    div.title=`Day ${i} — ${isFut?'upcoming':pct+'% complete'}`;
+    div.onclick=()=>{ viewDate=s; go('today'); };
+    g.appendChild(div);
+  }
+}
+
+// ─────────────────────────────────────────
+// STATS
+// ─────────────────────────────────────────
+function renderStats(){
+  const t=today();
+  let wks=0,perf=0,tot=0,logged=0,push=0,pull=0,legs=0,hiit=0,moodSum=0,moodCnt=0;
+  for(let i=1;i<=75;i++){
+    const s=dateForDay(i);
+    if(s>t)continue;
+    logged++;
+    const {pct}=completion(s);
+    tot+=pct;
+    const data=D.days[s];
+    if(data){
+      if(data.h&&data.h.gym)wks++;
+      if(pct===100)perf++;
+      const w=wtFor(s);
+      if(data.h&&data.h.gym){
+        if(w.n.includes('Push'))push++;
+        else if(w.n.includes('Pull'))pull++;
+        else if(w.n.includes('HIIT'))hiit++;
+        else if(w.n.includes('Legs'))legs++;
+      }
+      if(data.mood){moodSum+=data.mood;moodCnt++;}
+    }
+  }
+  const avgC=logged?Math.round(tot/logged):0;
+  const lw=latestWeight();
+  const lost=lw&&D.startWeight?(D.startWeight-lw).toFixed(1):0;
+  const str=streak();
+
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="sc"><div class="sv" style="color:var(--amber)">🔥 ${str}</div><div class="sl">Current streak</div></div>
+    <div class="sc"><div class="sv" style="color:var(--green)">${perf}</div><div class="sl">Perfect days</div></div>
+    <div class="sc"><div class="sv" style="color:var(--accent)">${wks}</div><div class="sl">Workouts done</div></div>
+    <div class="sc"><div class="sv" style="color:var(--red)">${lost>0?'-'+lost:'0'}kg</div><div class="sl">Fat lost</div></div>
+    <div class="sc"><div class="sv" style="color:var(--purple)">${avgC}%</div><div class="sl">Avg completion</div></div>
+    <div class="sc"><div class="sv" style="color:var(--text2)">${logged}</div><div class="sl">Days logged</div></div>`;
+
+  renderFullChart();renderCompChart();renderMoodChart();
+
+  // Workout bars
+  const maxW=Math.max(push,pull,legs,hiit,1);
+  document.getElementById('wkBreakdown').innerHTML=['Push days','Pull days','Legs+core','Legs+HIIT'].map((l,i)=>{
+    const vals=[push,pull,legs,hiit],cs=['#22d3ee','#22c55e','#a855f7','#ef4444'];
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="width:76px;font-size:11px;color:var(--text2)">${l}</div><div style="flex:1;height:8px;background:var(--s2);border-radius:4px;overflow:hidden"><div style="width:${Math.round(vals[i]/maxW*100)}%;height:100%;background:${cs[i]};border-radius:4px"></div></div><div style="width:22px;font-size:12px;font-weight:700;color:${cs[i]};text-align:right">${vals[i]}</div></div>`;
+  }).join('');
+}
+
+function renderFullChart(){
+  const pts=[];
+  for(let i=1;i<=75;i++){const s=dateForDay(i),d=D.days[s];if(d&&d.w)pts.push({x:i,y:d.w});}
+  const ctx=document.getElementById('fullChart').getContext('2d');
+  if(charts.full)charts.full.destroy();
+  if(pts.length<2){ctx.fillStyle='#4b5563';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('Log weight daily to see your progress',ctx.canvas.width/2,90);return;}
+  charts.full=new Chart(ctx,{type:'line',data:{datasets:[{data:pts,borderColor:'#22d3ee',backgroundColor:'#22d3ee10',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#22d3ee',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',display:true,grid:{color:'#1e1e2e'},ticks:{color:'#4b5563',font:{size:9},callback:v=>`D${v}`}},y:{grid:{color:'#1e1e2e'},ticks:{color:'#4b5563',font:{size:10},callback:v=>`${v}kg`}}}}});
+}
+
+function renderCompChart(){
+  const vals=[],cols=[],t=today();
+  for(let i=1;i<=75;i++){const s=dateForDay(i);if(s>t)break;const{pct}=completion(s);vals.push(pct);cols.push(pct===100?'#22c55e':pct>=80?'#f59e0b':pct>0?'#ef444470':'#1e1e2e');}
+  const ctx=document.getElementById('compChart').getContext('2d');
+  if(charts.comp)charts.comp.destroy();
+  charts.comp=new Chart(ctx,{type:'bar',data:{labels:vals.map((_,i)=>`D${i+1}`),datasets:[{data:vals,backgroundColor:cols,borderRadius:2,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{max:100,grid:{color:'#1e1e2e'},ticks:{color:'#4b5563',font:{size:9},callback:v=>`${v}%`}}}}});
+}
+
+function renderMoodChart(){
+  const pts=[],t=today();
+  for(let i=1;i<=75;i++){const s=dateForDay(i),d=D.days[s];if(s>t)break;if(d&&d.mood)pts.push({x:i,y:d.mood});}
+  const ctx=document.getElementById('moodChart').getContext('2d');
+  if(charts.mood)charts.mood.destroy();
+  if(pts.length<2){ctx.fillStyle='#4b5563';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('Track your daily mood to see trend',ctx.canvas.width/2,50);return;}
+  charts.mood=new Chart(ctx,{type:'line',data:{datasets:[{data:pts,borderColor:'#f59e0b',backgroundColor:'#f59e0b10',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#f59e0b',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{type:'linear',display:false},y:{min:1,max:5,grid:{color:'#1e1e2e'},ticks:{color:'#4b5563',font:{size:9},stepSize:1,callback:v=>['','😴','😐','🙂','😄','🔥'][v]||v}}}}});
+}
+
+// ─────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────
+function go(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nv').forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.getElementById(`nav-${name}`).classList.add('active');
+  if(name==='home')renderHome();
+  if(name==='today')renderToday(viewDate||today());
+  if(name==='calendar')renderCalGrid();
+  if(name==='stats')renderStats();
+}
+
+// ─────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────
+function boot(){
+  document.getElementById('setupEl').style.display='none';
+  document.getElementById('appEl').style.display='block';
+  viewDate=today();
+  updateTop();
+  renderHome();
+  go('home');
+}
+
+(function init(){
+  document.getElementById('sDate').value=today();
+  if(load()&&D.startDate){boot();}
+})();
+</script>
+</body>
+</html>
